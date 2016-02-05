@@ -1,0 +1,86 @@
+$global-html-order: () !default;
+
+@function find-max($list) {
+	$temp: (0, null);
+	@each $item in $list {
+		@if nth($item, 1) >= nth($temp, 1) {
+			$temp: $item;
+		}
+	}
+	@return $temp;
+}
+
+@mixin any-order($container: null, $html-order: null, $render-order: ()) {
+
+	@if $html-order == null or $html-order == () {
+		$html-order: $global-html-order;
+	}
+
+	@if $render-order == null or $render-order == () {
+		// no need to reorder the html-order, set it to null
+		// to prevent @each loop in the follwing code
+		$html-order: null;
+	}
+
+	$left-most-list-with-elem: ();
+	$right-most-list: (0);
+
+	@each $el in $html-order {
+
+		$container: if($container == null or $container == "", "body", $container);
+
+		#{$container} {
+			#{nth($el,1)} {
+
+				$i: 1;
+				$left-most: 0;
+
+				@while $el != nth($render-order, $i) {
+					$left-most: $left-most + nth(nth($render-order, $i), 2);
+					$i: $i + 1;
+				}
+
+				$max-left-most-with-elem: find-max($left-most-list-with-elem);
+
+				$max-left-most: nth($max-left-most-with-elem, 1);
+				$max-left-most-elem: nth($max-left-most-with-elem, 2);
+
+				$left-most-list-with-elem: append($left-most-list-with-elem, ($left-most, $el));
+
+				@if $el != nth($html-order, 1) {
+					$right-most-list: append($right-most-list, $max-left-most + nth($max-left-most-elem,2));
+				}
+
+				margin-left: $left-most - max($right-most-list...);
+
+			}
+		}
+
+	}
+
+}
+
+
+// test
+
+// $render-order1: ((".main", 60%), (".left", 25%), (".right",15%));
+// $render-order2: ((".left", 25%), (".main", 60%), (".right",15%));
+// $render-order3: ((".left", 25%), (".right",15%), (".main", 60%));
+// $render-order4: ((".right",15%), (".left", 25%), (".main", 60%));
+// $render-order5: ((".right",15%), (".main", 60%), (".left", 25%));
+// $render-order6: ((".main", 60%), (".right",15%), (".left", 25%));
+// $render-order7: ((".block1", 10%), (".block4", 40%), (".block3", 30%), (".block2", 20%));
+// $render-order8: ((".block4", 40%), (".block2", 20%), (".block1", 10%), (".block3", 30%));
+
+// $html-order should be identical to the order of html source code
+// $html-order: ((".main", 60%), (".left", 25%), (".right",15%));
+
+// @include any-order(".order1", $html-order, $render-order1);
+// @include any-order(".order2", $html-order, $render-order2);
+// @include any-order(".order3", $html-order, $render-order3);
+// @include any-order(".order4", $html-order, $render-order4);
+// @include any-order(".order5", $html-order, $render-order5);
+// @include any-order(".order6", $html-order, $render-order6);
+
+// @include any-order("", ((".block1", 10%), (".block2", 20%), (".block3", 30%), (".block4", 40%)), $render-order7);
+// @include any-order(".order8", ((".block1", 10%), (".block2", 20%), (".block3", 30%), (".block4", 40%)), $render-order8);
